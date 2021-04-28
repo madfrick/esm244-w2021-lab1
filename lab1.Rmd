@@ -27,15 +27,80 @@ Refresh some skills for data wrangling and summary statistics using functions in
 Find the top five highest observations of trees by legal_Status, do some wrangling, make a graph
 
 ```{r}
-
 top_five_status <- sf_trees %>% 
   count(legal_status) %>%  #count recognizes finds counts of observations based on one or more variables :groups (replacing group by), finds counts (replaces n), puts it in a table (replaces summarize)
   drop_na(legal_status) %>% #drops all of the NA row where NA is in the legal status row
   rename(tree_count = n) %>%  #new name left old name right
   relocate(tree_count) %>% #this brings tree count to the first column position
   slice_max(tree_count, n = 5) #allows to identify by highest value in a variable
+```
+
+Make a graph of those five observations
+
+```{r}
+ggplot(data = top_five_status, aes(x = fct_reorder(legal_status, tree_count), y = tree_count)) +
+  geom_col() + #reorder thing orders the status by the tree count instead of alphabetical 
+  labs(x = "Legal Status", y = "Tree Count")+
+  coord_flip() + #flips the x and y axis
+  theme_minimal()
+ 
+```
+More data wrangling
+only want to keep observations for blackwood acacia trees
+```{r}
+blackwood_acacia <- sf_trees %>% 
+  filter(str_detect(species, "Blackwood Acacia")) %>% #checks wherever this string shows up at all
+  select(legal_status, date, latitude, longitude)
+
+ggplot(data = blackwood_acacia, aes(x = longitude, y = latitude)) +
+  geom_point()
 
 
-  
+```
+### tidyr::separate() and unite() functions
+useful for combining or separating columns
 
+```{r}
+sf_trees_sep <- sf_trees %>% 
+  separate(species, into = c("spp_scientific", "spp_common"), sep = "::") #break it up into two columns
+
+```
+
+Example: tidyr::unite()
+```{r}
+sf_tree_unite <- sf_trees %>% 
+  unite("id_Status", tree_id:legal_status, sep = "_cool!_")
+
+
+```
+
+Make some actual maps of blackwood acacia trees in SF!
+'st_as_sf()' to convert latitude and longitude to spatial coordinates
+
+```{r}
+blackwood_acacia_sp <- blackwood_acacia %>% 
+  drop_na(longitude, latitude) %>% 
+  st_as_sf(coords = c("longitude", "latitude")) #whatever the variable names are storing the long and lat
+
+st_crs(blackwood_acacia_sp) = 4326 #set it as this four digit code from the coordinate reference system
+
+ggplot(data = blackwood_acacia_sp) +
+  geom_sf(color = "darkgreen") #this works because it is spacial data
+
+```
+Read in SF roads shapefile 
+```{r}
+sf_map <- read_sf(here("data", "sf_map", "tl_2017_06075_roads.shp"))
+
+st_transform(sf_map, 4326)
+
+ggplot(data = sf_map) +
+  geom_sf()
+```
+combine acacia tree observations and the road map
+```{r}
+ggplot() +
+  geom_sf(data = sf_map, size = 0.1, color = "darkgray") +
+  geom_sf(data = blackwood_acacia_sp, color = "red", size = 0.5) +
+  theme_void()
 ```
