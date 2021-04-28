@@ -104,3 +104,11 @@ ggplot() +
   geom_sf(data = blackwood_acacia_sp, color = "red", size = 0.5) +
   theme_void()
 ```
+MAKE IT INTERACTIVE!!
+```{r}
+tmap_mode("view")
+
+tm_shape(blackwood_acacia_sp) +
+  tm_dots()
+```
+
